@@ -1,0 +1,477 @@
+// ISPITI ZADACI
+
+// Niz celih brojeva a=[a[0],a[1], ... ,a[n-1]] zadovoljava "1-3-2" svojstvo ako postoje indeksi i,j,k takvi da je 0<=i<j<k<=n-1 i a[i]<a[k]<a[j]. Odrediti da li dati niz celih brojeva zadovoljava "1-3-2" svojstvo.
+// Ulaz: Prirodan broj n (dužina niza), kao i elementi niza a.
+// Izlaz: String "DA" ili "NE", u zavisnosti od toga da li niz a zadovoljava "1-3-2" svojstvo.
+// Primer:
+// Ulaz - n=4, a=[3,1,4,2]
+// Izlaz - DA
+// Komentar: Na primer, elementi 3,4 i 2 zadovoljavaju "1-3-2" svojstvo.
+// Vremenska kompleksnost: (O(n^2))
+
+#include <iostream>
+#include <vector>
+#include <climits>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    // prolaz kroz sve moguće j (srednji element)
+    for (int j = 1; j < n - 1; j++) {
+        int minLeft = INT_MAX;
+        // nađi minimum sa leve strane od j
+        for (int i = 0; i < j; i++) {
+            if (a[i] < minLeft) minLeft = a[i];
+        }
+
+        // ako nema smisla, preskoči
+        if (minLeft >= a[j]) continue;
+
+        // proveri da li postoji k > j takav da minLeft < a[k] < a[j]
+        for (int k = j + 1; k < n; k++) {
+            if (minLeft < a[k] && a[k] < a[j]) {
+                cout << "DA" << endl;
+                return 0;
+            }
+        }
+    }
+
+    cout << "NE" << endl;
+    return 0;
+}
+
+// Dat je sortiran niz celih brojeva u kojem se tačno jedan element pojavljuje jedanput, dok svi ostali elementi pojavljuju tačno dva puta (jedan za drugim). Napisati funkciju koja za dati niz određuje element koji se pojavio tačno jednom.
+// Ulaz: Prirodan broj n (dužina niza), kao i elementi niza a.
+// Izlaz: Element niza a koji se pojavio tačno jedanput.
+// Primer:
+// Ulaz - n = 11
+// a = [1,1,3,3,4,5,5,7,7,8,8]
+// Izlaz - 4
+// Vremenska kompleksnost: (O(log n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int findSingleElement(const vector<int>& a) {
+    int left = 0, right = (int)a.size() - 1;
+
+    while (left < right) {
+        int mid = (left + right) / 2;
+
+        // obezbedimo da mid bude paran indeks
+        if (mid % 2 == 1) mid--;
+
+        if (a[mid] == a[mid + 1]) {
+            // par je dobar -> jedinstveni je desno
+            left = mid + 2;
+        } else {
+            // par nije dobar -> jedinstveni je levo ili je baš a[mid]
+            right = mid;
+        }
+    }
+
+    return a[left]; // kada left == right
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    cout << findSingleElement(a) << endl;
+    return 0;
+}
+
+// Data je permutacija p prirodnih brojeva od 1 do n. Pod inverzijom permutacije p podrazumevamo uređeni par (pi, pj) elemenata permutacije za koji važi i<j i pi>pj. Napisati funkciju koja vraća ukupan broj inverzija za ulaznu permutaciju.
+// Prirodan broj n (broj elemenata), kao i permutacija p prirodnih brojeva od 1 do 1.
+// Izlaz: Ukupan broj inverzija permutacije p.
+// Primer: Ulaz - n = 5
+// 3 5 1 4 2
+// Izlaz - 6
+// Komentar: To su parovi (3,1),(3,2),(5,1),(5,4),(5,2) i (4,2).
+// Vremenska slozenost: (O(n log n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+long long mergeAndCount(vector<int>& arr, int left, int mid, int right) {
+    long long invCount = 0;
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
+
+    vector<int> L(n1), R(n2);
+    for (int i = 0; i < n1; i++) L[i] = arr[left + i];
+    for (int j = 0; j < n2; j++) R[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = left;
+
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k++] = L[i++];
+        } else {
+            arr[k++] = R[j++];
+            // svi preostali u L čine inverzije sa R[j-1]
+            invCount += (n1 - i);
+        }
+    }
+
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+
+    return invCount;
+}
+
+long long mergeSortAndCount(vector<int>& arr, int left, int right) {
+    long long invCount = 0;
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        invCount += mergeSortAndCount(arr, left, mid);
+        invCount += mergeSortAndCount(arr, mid + 1, right);
+        invCount += mergeAndCount(arr, left, mid, right);
+    }
+    return invCount;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> p(n);
+    for (int i = 0; i < n; i++) cin >> p[i];
+
+    long long result = mergeSortAndCount(p, 0, n - 1);
+    cout << result << endl;
+
+    return 0;
+}
+
+// Pera ima gomilu novčanica u vrednosti od x dinara, a Mika ima gomilu novčanica u vrednosti od y dinara. Svako želi da sa svoje gomile uzme određeni broj novčanica tako da na kraju obojica imaju isti iznos a da su ukupno uzeli najmanji mogući broj novčanica. Odrediti taj najmanji mogući broj.
+// Ulaz: Dva prirodna broja x i y.
+// Izlaz: Najmanji mogući broj novčanica.
+// Primer:
+// Ulaz - 6 4
+// Izlaz: 5
+// Komentar: Pera uzme dve a Mika tri novčanice.
+// Vremenska kompleksnost: (O(log min{x, y}))
+
+#include <iostream>
+using namespace std;
+
+long long gcd(long long a, long long b) {
+    while (b != 0) {
+        long long temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    long long x, y;
+    cin >> x >> y;
+
+    long long g = gcd(x, y);
+    long long lcm = (x / g) * y;  // da izbegnemo overflow
+
+    long long pera = lcm / x;
+    long long mika = lcm / y;
+
+    cout << (pera + mika) << endl;
+
+    return 0;
+}
+
+// Napisati program koji za uneti prirodan broj n određuje najmanji broj m takav da je n*m potpun kvadrat.
+// Ulaz: Prirodan broj n.
+// Izlaz: Najmanji prirodan broj m takav da je n*m potpun kvadrat.
+// Primer:
+// Ulaz - 104
+// Izlaz - 26
+// Vremenska kompleksnost: (O(root(n)))
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    long long n;
+    cin >> n;
+
+    long long m = 1;
+    long long temp = n;
+
+    for (long long p = 2; p * p <= temp; p++) {
+        int count = 0;
+        while (n % p == 0) {
+            n /= p;
+            count++;
+        }
+        if (count % 2 == 1) {
+            m *= p;  // dodaj ga u m ako je neparan stepen
+        }
+    }
+
+    // Ako na kraju ostane prost broj > 1 (n je sada prost)
+    if (n > 1) {
+        m *= n;  // stepen mu je 1 (neparan)
+    }
+
+    cout << m << endl;
+    return 0;
+}
+
+// Marko tvrdi da je matematički supergenije, što jako živcira Milicu, te je ona odlučila da se igra jedne igre sa Markom, i to tako da MIlica Marku n puta postavi pitanje tipa "Koliko ima prostih brojeva od a do b", a da Marko mora dati tačan odgovor za svako od takvih n pitanja. Međutim, Milica ne zna da je Marko angažovap program koji, za svaki dati prirodan broj n, određuje koliko ima prostih brojeva za svaki od datih n intervala.
+// Ulaz: Prirodan broj n, a u narednih n linija po dva prirodna broja a i b koji predstavljaju krajeve intervala [a,b], pri čemu znamo da je b<=M.
+// Izlaz: n prirodnih brojeva koji predstavljaju broj prostih brojeva u svakom intervalu.
+// Primer:
+// Ulaz - n = 5
+// 5 15
+// 3 20
+// 1 100
+// 50 500
+// 19 36
+// Izlaz - 4 7 25 80 4
+// Vremenska kompleksnost: (O(M log M))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<pair<int, int>> queries(n);
+    int M = 0;
+
+    // Učitavanje upita i pronalaženje maksimalne vrednosti b
+    for (int i = 0; i < n; i++) {
+        cin >> queries[i].first >> queries[i].second;
+        if (queries[i].second > M)
+            M = queries[i].second;
+    }
+
+    // Eratostenovo sito — složenost O(M log log M) ≈ O(M log M)
+    vector<bool> isPrime(M + 1, true);
+    isPrime[0] = isPrime[1] = false;
+
+    for (int i = 2; i * i <= M; i++) {
+        if (isPrime[i]) {
+            for (int j = i * i; j <= M; j += i) {
+                isPrime[j] = false;
+            }
+        }
+    }
+
+    // Prefiksni niz broja prostih
+    vector<int> primeCount(M + 1, 0);
+    for (int i = 1; i <= M; i++) {
+        primeCount[i] = primeCount[i - 1] + (isPrime[i] ? 1 : 0);
+    }
+
+    // Odgovori na upite
+    for (auto &q : queries) {
+        int a = q.first, b = q.second;
+        int count = primeCount[b] - (a > 1 ? primeCount[a - 1] : 0);
+        cout << count << " ";
+    }
+
+    cout << endl;
+    return 0;
+}
+
+// Dat je niz od n razlicitih celih brojeva, kao i ceo broj s. Odrediti broj parova elemenata niza čiji je zbir jednak datom broju s.
+// Ulaz: Prirodan broj n (dužina niza), n elemenaat niza a, kao i broj s.
+// Izlaz: Broj parova različitih elemenata niza čiji je zbir jednak broju s.
+// Primer:
+// Ulaz - n = 6
+// 1 4 3 6 -1 5
+// s = 5
+// Izlaz - 2
+// Komentar: To su parovi (1,4) i (6,-1).
+// Vremenska kompleksnost: (O(N log n))
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    int s;
+    cin >> s;
+
+    // Sortiramo niz → O(N log N)
+    sort(a.begin(), a.end());
+
+    int left = 0, right = n - 1;
+    int count = 0;
+
+    // Dva pokazivača → O(N)
+    while (left < right) {
+        int sum = a[left] + a[right];
+        if (sum == s) {
+            count++;
+            left++;
+            right--;
+        } else if (sum < s) {
+            left++;
+        } else {
+            right--;
+        }
+    }
+
+    cout << count << endl;
+    return 0;
+}
+
+// KOLOKVIJUM 1 SAMO
+
+// Dat je niz od n celih brojeva, pri čemu su svi brojevi različiti od nule. Preurediti elemente ovog niza tako da sadrži pozitivne i negativne brojeve na naizmeničnim pozicijama. Ukoliko niz sadrži više pozitivnih ili negativnih brojeva, prebaciti ih na kraj niza.
+// Ulaz: Prirodan broj n, kao i n celih brojeva različitih od nule.
+// Izlaz: Brojevi niza u traženom poretku.
+// Primer:
+// Ulaz - n = 8
+// 10 -2 6 -1 -7 -5 2 4
+// Izlaz - 6 -1 10 -5 2 -7 4 -2
+// Komentar: Linearna složenost može se postići primenom ideje quicksort algoritma.
+// Vremenska složenost: (O(n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> a(n);
+    for(int i = 0; i < n; i++) cin >> a[i];
+
+    // Ideja: podeliti na pozitivne i negativne koristeći varijantu partition (O(n))
+    int pos = 0, neg = 0;
+    vector<int> posArr, negArr;
+    for(int i = 0; i < n; i++) {
+        if(a[i] > 0) posArr.push_back(a[i]);
+        else negArr.push_back(a[i]);
+    }
+
+    int p = 0, q = 0;
+    vector<int> result;
+
+    // Naizmenično ubacivanje
+    while(p < posArr.size() && q < negArr.size()) {
+        result.push_back(posArr[p++]);
+        result.push_back(negArr[q++]);
+    }
+
+    // Dodavanje preostalih (ako ih ima)
+    while(p < posArr.size()) result.push_back(posArr[p++]);
+    while(q < negArr.size()) result.push_back(negArr[q++]);
+
+    for(int i = 0; i < n; i++) {
+        cout << result[i] << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+
+// Dat je prirodan broj n>2. Odrediti dva različita prosta broja čiji je proizvod jednak datom broju n. Ukoliko ima više rešenja, štampati bilo koje.
+// Ulaz: Prirodan broj n.
+// Izlaz: Dva različita prosta broja a i b takvi da je n = ab.
+// Primer:
+// Ulaz - n = 39
+// Izlaz - 3 13
+// Vremenska složenost: (O(n log log n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+// Sito Eratostenovo — O(n log log n)
+vector<bool> sieve(int n) {
+    vector<bool> isPrime(n + 1, true);
+    isPrime[0] = isPrime[1] = false;
+    for (int i = 2; i * i <= n; i++) {
+        if (isPrime[i]) {
+            for (int j = i * i; j <= n; j += i)
+                isPrime[j] = false;
+        }
+    }
+    return isPrime;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<bool> isPrime = sieve(n);
+
+    // Tražimo dva različita prosta broja a i b takva da je a * b == n
+    for (int a = 2; a <= n / 2; a++) {
+        if (isPrime[a] && n % a == 0) {
+            int b = n / a;
+            if (b != a && b <= n && isPrime[b]) {
+                cout << a << " " << b << endl;
+                return 0;
+            }
+        }
+    }
+
+    cout << "Nema takvih prostih brojeva." << endl;
+    return 0;
+}
+
+// Dat je niz a od n različitih celih brojeva. Preurediti elemente niza tako da se elementi niza sa parnim indeksima nađu u rastućem redosledu, a da se elementi niza sa neparnim indeksima nađu u opadajućem redosledu. Modifikovani niz treba najpre da sadrži elemente sa parnim indeksima u rastućem redosledu, iza kojih slede elementi sa neparnim indeksima u opadajućem redosledu.
+// Ulaz: Prirodan broj n, kao i n elemenata niza a.
+// Izlaz: Elementi niza preuređeni u dati redosled.
+// Primer:
+// Ulaz - n = 9
+// 4 2 3 5 6 10 14 15 13
+// Izlaz - 3 4 6 13 14 15 10 5 2
+// Komentar: Najviše se boduje rešenje najoptimalnije memorijske složenosti O(1).
+// Vremenska složenost: (O(n log n))
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    // Sortiramo ceo niz
+    sort(a.begin(), a.end());
+
+    int evenCount = (n + 1) / 2;
+    vector<int> result(n);
+
+    // Prvih evenCount ide rastuće (parni indeksi)
+    for (int i = 0; i < evenCount; i++)
+        result[i] = a[i];
+
+    // Ostatak ide opadajuće (neparni indeksi)
+    int idx = n - 1;
+    for (int i = evenCount; i < n; i++)
+        result[i] = a[idx--];
+
+    for (int x : result) cout << x << " ";
+    cout << endl;
+
+    return 0;
+}
