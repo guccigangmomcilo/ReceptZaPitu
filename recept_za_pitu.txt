@@ -1,0 +1,1711 @@
+// Niz celih brojeva a=[a[0],a[1], ... ,a[n-1]] zadovoljava "1-3-2" svojstvo ako postoje indeksi i,j,k takvi da je 0<=i<j<k<=n-1 i a[i]<a[k]<a[j]. Odrediti da li dati niz celih brojeva zadovoljava "1-3-2" svojstvo.
+// Ulaz: Prirodan broj n (dužina niza), kao i elementi niza a.
+// Izlaz: String "DA" ili "NE", u zavisnosti od toga da li niz a zadovoljava "1-3-2" svojstvo.
+// Primer:
+// Ulaz - n=4, a=[3,1,4,2]
+// Izlaz - DA
+// Komentar: Na primer, elementi 3,4 i 2 zadovoljavaju "1-3-2" svojstvo.
+// Vremenska kompleksnost: (O(n^2))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+/*
+Strategija:
+- Fiksiramo srednji element a[j] (to je "3" u šablonu)
+- Sa leve strane od j tražimo najmanji element (to je "1" u šablonu)
+- Sa desne strane od j tražimo element a[k] takav da je:
+  a[i] < a[k] < a[j] (to je "2" u šablonu)
+
+Algoritam:
+1. Za svaki mogući srednji element j (od 1 do n-2):
+2.   Nađemo minimum u levom delu niza [0, j-1]
+3.   Ako je minLevo >= a[j], preskočimo - nema šanse za šablon
+4.   U desnom delu [j+1, n-1] tražimo element a[k] takav da:
+     minLevo < a[k] < a[j]
+5.   Čim nađemo jedan takav element, vraćamo TRUE
+
+*/
+
+// Funkcija koja proverava da li niz zadovoljava "1-3-2" šablon
+bool ima132Sablon(const vector<int>& a) {
+    int n = a.size();
+
+    // Prolazimo kroz svaki mogući srednji element j ("3" u šablonu)
+    for (int j = 1; j < n - 1; j++) {
+
+        // Nalazimo najmanji element u levom delu niza [0, j-1]
+        // Ovo je potencijalni kandidat za "1" u šablonu
+        int minLevo = a[0];
+        for (int i = 1; i < j; i++) {
+            if (a[i] < minLevo)
+                minLevo = a[i];
+        }
+
+        // Ako je najmanji element sa leve strane veći ili jednak a[j],
+        // ne možemo formirati šablon jer nam treba a[i] < a[j]
+        if (minLevo >= a[j])
+            continue;
+
+        // Tražimo u desnom delu niza [j+1, n-1] element a[k]
+        // koji zadovoljava: minLevo < a[k] < a[j]
+        for (int k = j + 1; k < n; k++) {
+            if (a[k] > minLevo && a[k] < a[j])
+                return true; // pronađen validan 1-3-2 šablon
+        }
+    }
+
+    // Nije pronađen nijedan validan šablon
+    return false;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> a(n);
+    for (int i = 0; i < n; i++)
+        cin >> a[i];
+
+    if (ima132Sablon(a))
+        cout << "DA";
+    else
+        cout << "NE";
+
+    return 0;
+}
+
+// Dat je sortiran niz celih brojeva u kojem se tačno jedan element pojavljuje jedanput, dok svi ostali elementi pojavljuju tačno dva puta (jedan za drugim). Napisati funkciju koja za dati niz određuje element koji se pojavio tačno jednom.
+// Ulaz: Prirodan broj n (dužina niza), kao i elementi niza a.
+// Izlaz: Element niza a koji se pojavio tačno jedanput.
+// Primer:
+// Ulaz - n = 11
+// a = [1,1,3,3,4,5,5,7,7,8,8]
+// Izlaz - 4
+// Vremenska kompleksnost: (O(log n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int nadjiJedinstven(const vector<int>& a) {
+    int low = 0, high = a.size() - 1;
+
+    while (low < high) {
+        int mid = (low + high) / 2;
+
+        // Ako je mid neparan, pomerimo ga levo da bude paran
+        if (mid % 2 == 1)
+            mid--;
+
+        // Ako je par (a[mid], a[mid+1]) ispravan  jedinstveni je desno
+        if (a[mid] == a[mid + 1])
+            low = mid + 2;
+        else
+            high = mid;
+    }
+
+    return a[low];
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++)
+        cin >> a[i];
+
+    cout << nadjiJedinstven(a);
+    return 0;
+}
+
+// Data je permutacija p prirodnih brojeva od 1 do n. Pod inverzijom permutacije p podrazumevamo uređeni par (pi, pj) elemenata permutacije za koji važi i<j i pi>pj. Napisati funkciju koja vraća ukupan broj inverzija za ulaznu permutaciju.
+// Prirodan broj n (broj elemenata), kao i permutacija p prirodnih brojeva od 1 do 1.
+// Izlaz: Ukupan broj inverzija permutacije p.
+// Primer: Ulaz - n = 5
+// 3 5 1 4 2
+// Izlaz - 6
+// Komentar: To su parovi (3,1),(3,2),(5,1),(5,4),(5,2) i (4,2).
+// Vremenska slozenost: (O(n log n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+/*
+Pametno rešenje: Modifikovani Merge Sort (O(n log n))
+- Koristimo Divide and Conquer strategiju
+- Prvo rekurzivno brojimo inverzije u levoj i desnoj polovini
+- Zatim brojimo inverzije koje prelaze sredinu (između dve polovine)
+
+Ključna ideja:
+Kada spajamo dve sortirane polovine, ako element iz desne polovine
+je manji od elementa iz leve polovine, onda on formira inverzije
+sa SVAKIM preostalim elementom u levoj polovini (jer su leva i desna
+polovina već sortirane unutrašnje).
+*/
+
+// Funkcija koja spaja dva sortirana dela niza i broji inverzije između polovina
+long long mergeAndCount(vector<int>& a, int left, int mid, int right) {
+    // Pravimo kopije leve i desne polovine
+    vector<int> leftPart(a.begin() + left, a.begin() + mid + 1);
+    vector<int> rightPart(a.begin() + mid + 1, a.begin() + right + 1);
+
+    int i = 0, j = 0, k = left;
+    long long inversions = 0;
+
+    // Spajamo dve sortirane polovine
+    while (i < leftPart.size() && j < rightPart.size()) {
+        if (leftPart[i] <= rightPart[j]) {
+            a[k++] = leftPart[i++];
+        }
+        else {
+            a[k++] = rightPart[j++];
+            // Kada uzmemo element iz desne polovine, on je manji od
+            // SVIH preostalih elemenata u levoj polovini
+            inversions += (leftPart.size() - i);
+        }
+    }
+
+    // Kopiramo preostale elemente iz leve polovine
+    while (i < leftPart.size()) a[k++] = leftPart[i++];
+    // Kopiramo preostale elemente iz desne polovine
+    while (j < rightPart.size()) a[k++] = rightPart[j++];
+
+    return inversions;
+}
+
+// Rekurzivna funkcija koja broji inverzije pomoću merge sorta
+long long countInversions(vector<int>& a, int left, int right) {
+    // Bazni slučaj: podniz dužine 0 ili 1 nema inverzija
+    if (left >= right) return 0;
+
+    int mid = (left + right) / 2;
+    long long inversions = 0;
+
+    // Brojimo inverzije u levoj polovini
+    inversions += countInversions(a, left, mid);
+    // Brojimo inverzije u desnoj polovini
+    inversions += countInversions(a, mid + 1, right);
+    // Brojimo inverzije koje prelaze sredinu
+    inversions += mergeAndCount(a, left, mid, right);
+
+    return inversions;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    cout << countInversions(a, 0, n - 1);
+    return 0;
+}
+
+// Pera ima gomilu novčanica u vrednosti od x dinara, a Mika ima gomilu novčanica u vrednosti od y dinara. Svako želi da sa svoje gomile uzme određeni broj novčanica tako da na kraju obojica imaju isti iznos a da su ukupno uzeli najmanji mogući broj novčanica. Odrediti taj najmanji mogući broj.
+// Ulaz: Dva prirodna broja x i y.
+// Izlaz: Najmanji mogući broj novčanica.
+// Primer:
+// Ulaz - 6 4
+// Izlaz: 5
+// Komentar: Pera uzme dve a Mika tri novčanice. Vremenska kompleksnost: (O(log min{x, y}))
+
+#include <iostream>
+using namespace std;
+
+/*
+Matematička analiza:
+- Želimo: p × a = m × d (iste količine novca)
+- Tražimo: minimalno p + m
+
+Rešenje:
+- p × a = m × d = L = NZS(a, d)  (najmanji zajednički sadržalac)
+- p = L / a, m = L / d
+- Minimalan ukupan broj novčanica = p + m = L/a + L/d
+
+Objašnjenje:
+- NZS(a,d) je najmanji broj koji je deljiv i sa a i sa d
+- Kada obe osobe imaju NZS(a,d) dinara, imaju isti iznos
+- Broj novčanica = (ukupan iznos) / (vrednost novčanice)
+- Ovo je minimalno jer NZS je najmanji zajednički višekratnik
+*/
+
+// Euklidov algoritam za NZD (najveći zajednički delilac)
+long long gcd(long long a, long long b) {
+    while (b != 0) {
+        long long temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    long long x, y;
+    cin >> x >> y;
+
+    // Vrednosti novčanica
+    long long a = x, d = y;
+
+    // Pronalazimo najveći zajednički delilac
+    long long g = gcd(a, d);
+
+    // Računamo najmanji zajednički sadržalac
+    long long lcm = (a * d) / g;
+
+    // Računamo broj novčanica za svaku osobu
+    long long p = lcm / a;  // broj novčanica prve osobe
+    long long m = lcm / d;  // broj novčanica druge osobe
+
+    // Ispisujemo ukupan broj novčanica
+    cout << p + m;
+    return 0;
+}
+
+
+// Napisati program koji za uneti prirodan broj n određuje najmanji broj m takav da je n*m potpun kvadrat.
+// Ulaz: Prirodan broj n.
+// Izlaz: Najmanji prirodan broj m takav da je n*m potpun kvadrat.
+// Primer:
+// Ulaz - 104
+// Izlaz - 26
+// Vremenska kompleksnost: (O(root(n)))
+#include <iostream>
+#include <cmath>
+using namespace std;
+
+/*
+IDEJA REŠENJA:
+
+
+Matematička analiza:
+- Potpun kvadrat = svaki prost faktor se pojavljuje sa parnim stepenom
+- Da bismo n pretvorili u potpun kvadrat, treba da "uparimo" sve proste faktore koji imaju neparan stepen
+
+Algoritam:
+1. Rastavimo n na proste faktore
+2. Za svaki prost faktor:
+   - Ako ima NEPARAN stepen u n, onda moramo dodati još jedan isti faktor u t da "uparimo"
+   - Ako ima PARAN stepen, ne treba nam u t jer je već upareno
+3. t će biti proizvod svih prostih faktora koji su imali neparan stepen u n
+*/
+
+// Funkcija koja računa najmanji t tako da n * t bude potpun kvadrat
+int najmanjiT(int n) {
+    int t = 1;  // Početna vrednost t je 1
+
+    // Prolazimo kroz sve moguće delioce do kvadratnog korena od n
+    // Ova petlja će pronaći sve proste faktore manje ili jednake sqrt(n)
+    for (int i = 2; i * i <= n; i++) {
+        int stepen = 0;  // Brojač koliko puta se faktor i pojavljuje u n
+
+        // Dok god i deli n, povećavamo stepen i delimo n sa i
+        while (n % i == 0) {
+            stepen++;     // Našli smo još jedan faktor i
+            n /= i;       // Uklanjamo faktor i iz n
+        }
+
+        // Ako je broj pojavljivanja (stepen) neparan, 
+        // moramo dodati još jedan i u t da "uparimo" ovaj faktor
+        if (stepen % 2 == 1)
+            t *= i;
+    }
+
+    // Nakon petlje, ako je preostali n > 1, onda je n sam prost broj
+    // koji se pojavljuje sa stepenom 1 (neparan)
+    // Primer: n = 7 → nakon petlje n ostane 7, koji je prost
+    if (n > 1)
+        t *= n;
+
+    return t;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << najmanjiT(n);
+    return 0;
+}
+
+// Marko tvrdi da je matematički supergenije, što jako živcira Milicu, te je ona odlučila da se igra jedne igre sa Markom, i to tako da MIlica Marku n puta postavi pitanje tipa "Koliko ima prostih brojeva od a do b", a da Marko mora dati tačan odgovor za svako od takvih n pitanja. Međutim, Milica ne zna da je Marko angažovap program koji, za svaki dati prirodan broj n, određuje koliko ima prostih brojeva za svaki od datih n intervala.
+// Ulaz: Prirodan broj n, a u narednih n linija po dva prirodna broja a i b koji predstavljaju krajeve intervala [a,b], pri čemu znamo da je b<=M.
+// Izlaz: n prirodnih brojeva koji predstavljaju broj prostih brojeva u svakom intervalu.
+// Primer:
+// Ulaz - n = 5
+// 5 15
+// 3 20
+// 1 100
+// 50 500
+// 19 36
+// Izlaz - 4 7 25 80 4
+// Vremenska kompleksnost: (O(M log M))
+
+#include <iostream>
+using namespace std;
+
+/*
+IDEJA REŠENJA:
+1. PREDPROCESIRANJE (jednom na početku):
+   - Koristimo SITO ERATOSTENOVO da generišemo sve proste brojeve do MAKSIMALNOG b u svim upitima
+   - Složenost: O(M log log M) gde je M najveći broj koji ćemo proveravati
+
+2. PREFIKSNI NIZ (kumulativni zbir):
+   - Pravimo niz primeCount gde primeCount[i] = broj prostih brojeva od 1 do i
+   - Ovo omogućava da u O(1) vremenu izračunamo broj prostih u bilo kom intervalu [a,b]
+
+3. OBDIRA UPITA:
+   - Za svaki upit [a,b]: broj prostih = primeCount[b] - primeCount[a-1]
+   - Složenost po upitu: O(1)
+
+Ukupna složenost:
+- Predprocesiranje: O(M log log M)
+- Obrada n upita: O(n)
+- Ukupno: O(M log log M + n) - veoma efikasno!
+*/
+
+//------------------------------------------------------
+// Funkcija koja pravi Sito Eratostenovo do broja M
+// Vraća niz 'isPrime' gde je isPrime[i] = true ako je i prost broj
+//------------------------------------------------------
+void napraviSito(bool isPrime[], int M) {
+    // Inicijalno smatramo da su svi brojevi prosti
+    for (int i = 0; i <= M; i++) {
+        isPrime[i] = true;
+    }
+
+    // 0 i 1 nisu prosti brojevi
+    isPrime[0] = false;
+    isPrime[1] = false;
+
+    // Klasičan algoritam Sita Eratostenovog
+    for (int i = 2; i * i <= M; i++) {
+        if (isPrime[i]) { // ako je i prost
+            // Eliminišemo sve njegove višekratnike
+            // Počinjemo od i*i jer su svi manji višekratnici već označeni
+            for (int j = i * i; j <= M; j += i) {
+                isPrime[j] = false;
+            }
+        }
+    }
+}
+
+//------------------------------------------------------
+// Funkcija koja pravi prefiksni niz broja prostih brojeva do i
+// Na primer: primeCount[i] = broj prostih od 1 do i
+//------------------------------------------------------
+void napraviPrefiks(int primeCount[], bool isPrime[], int M) {
+    primeCount[0] = 0; // nema prostih do nule
+    for (int i = 1; i <= M; i++) {
+        // ako je trenutni broj prost, povećavamo broj prostih do tog broja
+        // ternarni operator: (uslov) ? vrednost_ako_tacno : vrednost_ako_nije
+        primeCount[i] = primeCount[i - 1] + (isPrime[i] ? 1 : 0);
+    }
+}
+
+//------------------------------------------------------
+// Funkcija koja računa broj prostih brojeva u intervalu [a, b]
+// koristeći prethodno napravljeni prefiksni niz
+//------------------------------------------------------
+int brojProstihUIntervalu(int primeCount[], int a, int b) {
+    if (a < 1) a = 1; // ne želimo da idemo ispod 1
+    // Formula: broj prostih u [a,b] = broj do b - broj do (a-1)
+    return primeCount[b] - primeCount[a - 1];
+}
+
+//------------------------------------------------------
+// Glavni deo programa – čitanje ulaza, pozivanje funkcija i ispis
+//------------------------------------------------------
+int main() {
+    int n;
+    cout << "Unesite broj pitanja n: ";
+    cin >> n;
+
+    int a[1000], b[1000]; // pretpostavljamo da n <= 1000 (možeš promeniti po potrebi)
+    int M = 0;
+
+    cout << "Unesite " << n << " intervala (a b):\n";
+    for (int i = 0; i < n; i++) {
+        cin >> a[i] >> b[i];
+        // čuvamo najveći b jer sito radimo do najvećeg broja
+        if (b[i] > M) M = b[i];
+    }
+
+    // Napravimo niz koji označava koji su brojevi prosti
+    bool* isPrime = new bool[M + 1];
+    napraviSito(isPrime, M);
+
+    // Napravimo prefiksni niz broja prostih do i
+    int* primeCount = new int[M + 1];
+    napraviPrefiks(primeCount, isPrime, M);
+
+    // Obradimo svaki upit u O(1) vremenu
+    cout << "Rezultati:\n";
+    for (int i = 0; i < n; i++) {
+        int rezultat = brojProstihUIntervalu(primeCount, a[i], b[i]);
+        cout << rezultat << " ";
+    }
+    cout << endl;
+
+    // Oslobađanje memorije
+    delete[] isPrime;
+    delete[] primeCount;
+    return 0;
+}
+
+// Dat je niz od n razlicitih celih brojeva, kao i ceo broj s. Odrediti broj parova elemenata niza čiji je zbir jednak datom broju s.
+// Ulaz: Prirodan broj n (dužina niza), n elemenat niza a, kao i broj s.
+// Izlaz: Broj parova različitih elemenata niza čiji je zbir jednak broju s.
+// Primer:
+// Ulaz - n = 6
+// 1 4 3 6 -1 5
+// s = 5
+// Izlaz - 2
+// Komentar: To su parovi (1,4) i (6,-1).
+// Vremenska kompleksnost: (O(N log n))
+
+
+#include <iostream>
+using namespace std;
+
+/*
+IDEJA REŠENJA:
+
+Problem: Pronaći broj parova u nizu čiji je zbir jednak zadatoj vrednosti s.
+
+Strategija:
+1. SORTIRANJE - Prvo sortiramo niz rastuće (O(n log n) vreme)
+2. DVA POKAZIVAČA - Koristimo dva pokazivača (levi i desni) koji kreću od krajeva niza
+   - Levi pokazivač kreće od početka (najmanji elementi)
+   - Desni pokazivač kreće od kraja (najveći elementi)
+3. TRAŽENJE PAROVA:
+   - Ako je zbir = s: nađen par, pomeramo OBA pokazivača
+   - Ako je zbir < s: treba veći zbir → pomeramo LEVI pokazivač (uzimamo veći element sa leve strane)
+   - Ako je zbir > s: treba manji zbir → pomeramo DESNI pokazivač (uzimamo manji element sa desne strane)
+
+Prednosti:
+- Vremenska složenost: O(n log n) za sortiranje + O(n) za pretragu = O(n log n)
+- Prostorna složenost: O(1) dodatne memorije (osim rekurzivnog steka za QuickSort)
+- Efikasnije od brute-force O(n²) rešenja
+
+Primer:
+Niz: [1, 4, 2, 3, 0, 5], s = 5
+Sortiran: [0, 1, 2, 3, 4, 5]
+Parovi: (0,5), (1,4), (2,3) → 3 para
+*/
+
+//---------------------------------------------------------
+// FUNKCIJA ZA ZAMENU DVA ELEMENTA (potrebna za sortiranje)
+//---------------------------------------------------------
+void swap(int& a, int& b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+//---------------------------------------------------------
+// FUNKCIJA ZA DEO QUICK SORTA – RAZDVAJA ELEMENTE OKO PIVOTA
+//---------------------------------------------------------
+int partition(int arr[], int low, int high) {
+    int pivot = arr[high];  // biramo zadnji element kao pivot
+    int i = low - 1;        // indeks manjeg elementa
+
+    // prolazimo kroz sve elemente od low do high-1
+    for (int j = low; j < high; j++) {
+        if (arr[j] < pivot) {   // ako je manji od pivota
+            i++;                // pomeramo indeks
+            swap(arr[i], arr[j]);
+        }
+    }
+
+    // stavljamo pivot na svoje mesto (iza svih manjih)
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+//---------------------------------------------------------
+// REKURZIVNI QUICK SORT
+//---------------------------------------------------------
+void quickSort(int arr[], int low, int high) {
+    if (low < high) {
+        // podelimo niz i dobijemo indeks pivota
+        int pi = partition(arr, low, high);
+
+        // sortiramo deo pre i posle pivota
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+//---------------------------------------------------------
+// FUNKCIJA KOJA BROJI PAROVE ČIJI JE ZBIR JEDNAK s
+//---------------------------------------------------------
+int countPairsWithSum(int arr[], int n, int s) {
+    // 1️ Prvo sortiramo niz — složenost O(n log n)
+    quickSort(arr, 0, n - 1);
+
+    int left = 0;         // levi pokazivač (početak niza)
+    int right = n - 1;    // desni pokazivač (kraj niza)
+    int count = 0;        // broj pronađenih parova
+
+    // 2️ Krećemo se ka sredini dok se pokazivači ne sretnu
+    while (left < right) {
+        int sum = arr[left] + arr[right];
+
+        if (sum == s) {
+            // našli smo jedan par
+            count++;
+
+            // pomeramo oba pokazivača da ne bismo koristili iste brojeve
+            left++;
+            right--;
+        }
+        else if (sum < s) {
+            // ako je zbir manji od s — moramo ga povećati
+            // pomeramo LEVI pokazivač da uzmemo veći element
+            left++;
+        }
+        else {
+            // ako je zbir veći od s — moramo ga smanjiti
+            // pomeramo DESNI pokazivač da uzmemo manji element
+            right--;
+        }
+    }
+
+    return count;
+}
+
+//---------------------------------------------------------
+// MAIN FUNKCIJA — samo čitanje podataka i poziv logike
+//---------------------------------------------------------
+int main() {
+    int n;
+    cout << "Unesite duzinu niza: ";
+    cin >> n;
+
+    int* a = new int[n]; // dinamički alociran niz
+
+    cout << "Unesite elemente niza:\n";
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    int s;
+    cout << "Unesite vrednost s: ";
+    cin >> s;
+
+    // poziv funkcije za brojanje parova
+    int rezultat = countPairsWithSum(a, n, s);
+
+    cout << "Broj parova sa zbirom " << s << " je: " << rezultat << endl;
+
+    delete[] a; // oslobađanje memorije
+    return 0;
+}
+
+
+// Dat je niz od n celih brojeva, pri čemu su svi brojevi različiti od nule. Preurediti elemente ovog niza tako da sadrži pozitivne i negativne brojeve na naizmeničnim pozicijama. Ukoliko niz sadrži više pozitivnih ili negativnih brojeva, prebaciti ih na kraj niza.
+// Ulaz: Prirodan broj n, kao i n celih brojeva različitih od nule.
+// Izlaz: Brojevi niza u traženom poretku.
+// Primer:
+// Ulaz - n = 8
+// 10 -2 6 -1 -7 -5 2 4
+// Izlaz - 6 -1 10 -5 2 -7 4 -2
+// Komentar: Linearna složenost može se postići primenom ideje quicksort algoritma.
+// Vremenska složenost: (O(n))
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+// 💡 Ideja rešenja:
+// Koristimo ideju "partition" iz QuickSort algoritma da razdvojimo pozitivne i negativne brojeve.
+// Zatim ih u linearnom vremenu (O(n)) naizmenično rasporedimo tako da redosled bude + - + - ili - + - +
+// Ukupna složenost: O(n)
+
+void rasporediNaizmenicno(vector<int>& a, int n) {
+    int i = -1; // indeks poslednjeg negativnog broja
+
+    // 1. "Partition" faza — svi negativni idu levo, svi pozitivni desno
+    for (int j = 0; j < n; j++) {
+        if (a[j] < 0) {
+            i++;
+            // zameni a[i] i a[j]
+            int temp = a[i];
+            a[i] = a[j];
+            a[j] = temp;
+        }
+    }
+
+    // sada su negativni u delu [0..i], a pozitivni u [i+1..n-1]
+    int pozitivni = i + 1; // prvi pozitivan
+    int negativni = 0;     // prvi negativan
+
+    // 2. Naizmenično premeštanje (swap)
+    // dok ima negativnih i pozitivnih brojeva
+    while (pozitivni < n && negativni < pozitivni && a[negativni] < 0) {
+        // zameni negativni sa pozitivnim
+        int temp = a[negativni];
+        a[negativni] = a[pozitivni];
+        a[pozitivni] = temp;
+
+        pozitivni++;
+        negativni += 2; // preskačemo jedan da bismo ih rasporedili naizmenično
+    }
+}
+
+int main() {
+    int n;
+    cout << "Unesite broj elemenata: ";
+    cin >> n;
+
+    vector<int> a(n);
+    cout << "Unesite elemente niza: ";
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    rasporediNaizmenicno(a, n);
+
+    cout << "Rasporedjeni niz: ";
+    for (int i = 0; i < n; i++) cout << a[i] << " ";
+    cout << endl;
+
+    return 0;
+}
+
+
+Data je sahovska tabla dimenzija n x n.
+ Napisati program koji za date brojeve 
+n,a,b,c,d,g, pri cemu je 0 <= a,b,c,d <= n-1 i 1 <= g <= n, 
+odredjuje da li skakac moze doci sa polja (a,b)
+ na polje (c,d) u ne vise od g poteza.
+Ulaz: Prirodni brojevi n,a,b,c,d,g (n je dimenzija tablem (a,b) pocetno polje skakaca, (c,d) zavrsno polje skakaca, broj koraka).
+Izlaz:String "DA" ili "NE", u zavisnosti od toga da li skakac moze doci od polja (a,b) do polja (c,d).
+Ulaz:
+n-8,
+a=0, b=0,
+c=7,d=7,
+g=5
+Izlaz: NE
+Algoritamska slozenost: O(n^2)
+
+#include <iostream>
+#include <queue>
+using namespace std;
+/*
+Tražimo najkraći put između dve pozicije
+BFS garantuje da će pronaći najkraći put (najmanji broj poteza)
+Suština algoritma:
+Početno stanje: Skakač je na poziciji (a,b) sa 0 poteza
+BFS pretraga:
+Posmatramo tablu kao graf gde su polja čvorovi
+Potezi skakača su grane između čvorova
+Koristimo red da obilazimo polja po nivou (najpre sva na 1 potez, pa 2, itd.)
+Provera uslova:
+Da li smo stigli do cilja (c,d)?
+Da li je broj poteza ≤ g?
+*/
+
+
+// Struktura koja čuva jedno polje na tabli i broj koraka do njega
+struct Polje {
+    int x, y;   // koordinate na tabli
+    int koraci; // broj poteza do ovog polja
+};
+
+// Proverava da li su koordinate unutar table (0 <= x,y < n)
+bool unutarTable(int x, int y, int n) {
+    return x >= 0 && y >= 0 && x < n&& y < n;
+}
+
+// BFS pretraga kojom tražimo da li se može stići u najviše g poteza
+bool mozeStici(int n, int a, int b, int c, int d, int g) {
+    // Mogući pravci skakača (8 kombinacija pomeranja)
+    int dx[8] = { 2, 2, 1, 1, -1, -1, -2, -2 };
+    int dy[8] = { 1, -1, 2, -2, 2, -2, 1, -1 };
+
+    // Kreiranje matrice za praćenje posećenih polja
+    // posecen[i][j] = true ako smo već posetili polje (i,j)
+    bool** posecen = new bool* [n];
+    for (int i = 0; i < n; i++) {
+        posecen[i] = new bool[n];
+        for (int j = 0; j < n; j++) posecen[i][j] = false;
+    }
+
+    queue<Polje> red;
+
+    // Dodajemo početno polje u red
+    Polje pocetno;
+    pocetno.x = a;
+    pocetno.y = b;
+    pocetno.koraci = 0;
+    red.push(pocetno);
+    posecen[a][b] = true;
+
+    // BFS petlja - obrađujemo polja dok red nije prazan
+    while (!red.empty()) {
+        // Uzimamo prvo polje iz reda
+        Polje trenutno = red.front();
+        red.pop();
+
+        // PROVERA CILJA: Da li smo stigli na krajnje polje unutar dozvoljenog broja poteza?
+        if (trenutno.x == c && trenutno.y == d && trenutno.koraci <= g) {
+            // Oslobađanje memorije pre povratka
+            for (int i = 0; i < n; i++)
+                delete[] posecen[i];
+            delete[] posecen;
+            return true; // USPESNO - pronašli smo put
+        }
+
+        // Ako smo već prekoracili maksimalan broj poteza, preskačemo dalju obradu
+        if (trenutno.koraci >= g)
+            continue;
+
+        // ISPITUJEMO SVE MOGUĆE POTEZE IZ TRENUTNOG POLJA
+        for (int i = 0; i < 8; i++) {
+            int nx = trenutno.x + dx[i]; // nova x koordinata
+            int ny = trenutno.y + dy[i]; // nova y koordinata
+
+            // Proveravamo da li je novo polje unutar table i da li ga već nismo posetili
+            if (unutarTable(nx, ny, n) && !posecen[nx][ny]) {
+                // Obeležavamo polje kao posećeno
+                posecen[nx][ny] = true;
+
+                // Kreiramo novo polje i dodajemo ga u red
+                Polje novo;
+                novo.x = nx;
+                novo.y = ny;
+                novo.koraci = trenutno.koraci + 1;
+                red.push(novo);
+            }
+        }
+    }
+
+    // Ako smo iscrpeli sva polja i nismo stigli do cilja — neuspeh
+    for (int i = 0; i < n; i++)
+        delete[] posecen[i];
+    delete[] posecen;
+
+    return false;
+}
+
+int main() {
+    // Unos podataka:
+    // n - dimenzija table (n x n)
+    // (a,b) - početna pozicija skakača
+    // (c,d) - ciljna pozicija
+    // g - maksimalan broj dozvoljenih poteza
+    int n, a, b, c, d, g;
+    cout << "Unesi n, a, b, c, d, g: ";
+    cin >> n >> a >> b >> c >> d >> g;
+
+    // Poziv BFS funkcije
+    if (mozeStici(n, a, b, c, d, g))
+        cout << "DA";
+    else
+        cout << "NE";
+
+    return 0;
+}
+
+Dat je niz celih brojeva a. Odrediti najduzi podniz datog niza a tako da se susedni
+elementi tog podniza razlikuju za najvise 1.
+Ulaz: Prirodan broj n (duzina niza), kao i elementi niza a.
+Izlaz: Elementi trazenog podniza.
+Slozenost: n^2
+Primer:
+Ulaz: n=7
+a= [10, 9, 4, 5, 4, 8, 6]
+Izlaz: 10, 9, 8
+Ulaz: n=8
+a= [1, 2, 3, 6, 3, 1, 2, 1]
+Izlaz: 1,2,3,2,1
+
+//Krenemo od svakog mogućeg početka podniza i.
+//Od tog indeksa i, proveravamo dokle možemo ići udesno (j),
+//dokle god važi |a[j] - a[j-1]| ≤ 1.
+//Ako dođemo do mesta gde razlika > 1,
+//prekidamo unutrašnju petlju i proveravamo da li je do tada pronađeni podniz najduži.
+
+#include <iostream>
+#include <cmath>
+using namespace std;
+
+//  Ideja:
+// Za svaku poziciju i računamo najduži podniz koji se završava na toj poziciji.
+// Ako postoji neko j < i takvo da se a[i] i a[j] razlikuju za najviše 1,
+// tada možemo produžiti podniz koji se završava u j da uključuje i i.
+//
+// DP pristup: O(n^2)
+
+void najduziPodniz(int a[], int n) {
+    int dp[100];       // dp[i] = dužina najdužeg podniza koji se završava u a[i]
+    int prethodni[100]; // prethodni[i] = indeks prethodnog elementa u podnizu
+    int maxDuzina = 1;
+    int kraj = 0;
+
+    for (int i = 0; i < n; i++) {
+        dp[i] = 1;         // svaka pozicija bar čini podniz dužine 1
+        prethodni[i] = -1; // nema prethodnika
+    }
+
+    // O(n^2) petlja
+    for (int i = 1; i < n; i++) {
+        for (int j = 0; j < i; j++) { // Za svaki element, proveravamo sve prethodne elemente
+            // Provera da li se elementi razlikuju najviše za 1
+            // i da li produžavanjem podniza iz j dobijamo bolje rešenje
+            if (abs(a[i] - a[j]) <= 1 && dp[j] + 1 > dp[i]) {
+                dp[i] = dp[j] + 1;
+                prethodni[i] = j;
+            }
+        }
+
+        // Ažuriramo globalni maksimum ako je potrebno
+        if (dp[i] > maxDuzina) {
+            maxDuzina = dp[i];
+            kraj = i;
+        }
+    }
+
+    // Rekonstrukcija rešenja
+    int niz[100]; // niz za čuvanje rezultata
+    int duzina = 0; // dužina rekonstruisanog niza
+
+    // Idemo unazad od kraja do početka koristeći prethodni niz
+    for (int i = kraj; i != -1; i = prethodni[i]) {
+        niz[duzina++] = a[i]; // dodajemo elemente u obrnutom redosledu
+    }
+
+    
+    cout << "Najduzi podniz: ";
+    for (int i = duzina - 1; i >= 0; i--) {
+        cout << niz[i];
+        if (i > 0) cout << ", ";
+    }
+    cout << endl;
+}
+
+int main() {
+    int n;
+    cout << "Unesite duzinu niza: ";
+    cin >> n;
+
+    int a[100];
+    cout << "Unesite elemente niza: ";
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    najduziPodniz(a, n);
+
+    return 0;
+}
+
+
+
+U racunarskoj mrezi nalazi se n racunara numerisanih 
+od 0 do n-1 pri cemu su neki racunari mrezno povezani.
+Svaki racunar, nakon sto dobije poruku, prenosi je do drugih racunara.
+Sistem administratora zele da izracunaju minimalan broj
+racunara od kojih se mora poceti sa slanjem poruke da bi poruka stigla
+do svih racunara u mrezi, kao i minimalan broj veza koji je potrebno dodati u mrezi
+da bi slanjem poruke od ma kog racunara ona stigla do svih drugih racunara
+
+Ulaz: U prvom redu standardnog ulaza nalaze se dva broja n i m, pri cemu je n broj
+racunara u mrezi, a m broj veza medju njima. U svakoj od narednih m linija nalazi se
+veza koja postoji u mrezi koja se sastoji od dva broja, i koja govorikoja dva
+racunara su povezani u mrezi.
+Izlaz: Na standardnom izlazu je potrebno ispisati dva broja: Prvi broj je minimalan broj
+racunara koji se mogu koristiti kao polazni racunari u mrezi, dok je drugi broj minimalan broj
+veza koji se mora dodati tako da poruka poslata sa ma kog racunara stigne do svih ostalin
+racunara.
+Primer:
+Ulaz: 6 6
+0 1
+0 2
+1 2
+3 4
+3 5
+4 5
+Izlaz:
+2 1
+Potrebna vremenska slozenost: O(n+m)
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+/*
+IDEJA REŠENJA:
+- Graf računara tretiramo kao neusmereni graf gde su čvorovi računari, a ivice veze među njima.
+- Svaka povezana komponenta u grafu predstavlja grupu računara među kojima poruka može slobodno da se širi.
+- Minimalan broj početnih računara sa kojih treba poslati poruku = broj komponenti (jer za svaku komponentu mora da se pošalje).
+- Minimalan broj veza koje treba dodati da graf postane povezan = broj komponenti - 1 
+  (jer dodavanjem veza između komponenti sve se mogu povezati u jednu komponentu).
+- Koristimo DFS da pronađemo sve komponente.
+*/
+
+void dfs(int u, vector<vector<int>> &graf, vector<bool> &posecen) {
+    // Oznacavamo trenutni racunar kao posecen
+    posecen[u] = true;
+
+    // Prolazimo kroz sve susede racunara u grafu
+    for (int i = 0; i < graf[u].size(); i++) {
+        int v = graf[u][i];
+        if (!posecen[v]) {
+            dfs(v, graf, posecen); // Rekurzivno obilazimo susede
+        }
+    }
+}
+
+// Funkcija koja racuna broj povezanih komponenti u grafu
+int brojKomponenti(vector<vector<int>> &graf, int n) {
+    vector<bool> posecen(n, false); // Pravimo niz za pracenje posecenih racunara
+    int komponente = 0;
+
+    // Prolazimo sve racunare
+    for (int i = 0; i < n; i++) {
+        if (!posecen[i]) {
+            dfs(i, graf, posecen); // Nova komponenta
+            komponente++;          // Povecavamo broj komponenti
+        }
+    }
+
+    return komponente;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    // Pravljenje grafa sa n racunara
+    vector<vector<int>> graf(n);
+
+    // Ucitavanje veza
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        graf[u].push_back(v);
+        graf[v].push_back(u); // Neusmeren graf
+    }
+
+    // Racunamo broj komponenti
+    int komponente = brojKomponenti(graf, n);
+
+    // Minimalan broj pocetnih racunara = broj komponenti
+    int minPocetni = komponente;
+    // Minimalan broj veza da graf bude povezan = broj komponenti - 1
+    int minVeze = komponente > 0 ? komponente - 1 : 0;
+
+    cout << minPocetni << " " << minVeze << endl;
+
+    return 0;
+}
+
+
+
+Data je matrica c dimenzija n x m, pri cemu svako polje c[i][j]
+predstavlja cenu stajanja na tom polju. Odrediti najmanju cenu putanje
+od gornjeg levo polja do donjeg desno polja matrice, pri cemu od jednog polja mozemo
+da se krecemo dole i desno. Drugim recima, od datom polja (i,j), mozemo stici do polja
+(i +1,j) i (i,j + 1), ukoliko ta polja postoje u matrici.
+Ulaz: Celi brojevi n i m (dimenzije matrice c) kao i elementi 
+matrice c.
+Izlaz: Najmanju cenu putanje od gornjeg levog polja do donjeg
+desnog polja matrice c.
+Ulaz:
+n=3, m=3
+1 2 3
+4 8 2
+1 5 3
+Izlaz: 11
+Tip: Trazenja putanja ide po poljima (0,0),(0,1),(0,2),(1,2),(2,2), pa je cena
+putanje jednaka 1+2+3+2+3=11
+Potrebno vreme slozenosti: O(nm)
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+/*
+IDEJA REŠENJA:
+- Imamo matricu cena `c` dimenzija n x m.
+- Dozvoljeni pokreti su samo na DOLJE (i+1, j) i DESNO (i, j+1).
+- Želimo da nađemo najmanju ukupnu cenu putanje od (0,0) do (n-1,m-1).
+
+LOGIKA:
+- Koristimo dinamičko programiranje (DP).
+- Napravićemo matricu `dp` iste veličine kao `c`, gde dp[i][j] predstavlja minimalnu cenu
+  da stignemo do polja (i, j).
+- Ideja je da da bi stigli do (i,j), možemo doći ili:
+     1. odozgo → iz (i-1, j)
+     2. sleva → iz (i, j-1)
+  pa biramo manju od te dve mogućnosti.
+- Formula:
+     dp[i][j] = c[i][j] + min(dp[i-1][j], dp[i][j-1])
+- Ograničavamo se da ne idemo van matrice, pa prvo popunjavamo prvi red i prvu kolonu posebno.
+- Na kraju, dp[n-1][m-1] je najmanja cena putanje.
+
+VREMENSKA SLOŽENOST: O(n*m)
+PROSTORNA SLOŽENOST: O(n*m)
+*/
+
+// Funkcija koja računa minimalnu cenu putanje kroz matricu
+int minimalnaCenaPutanje(vector<vector<int>> &c, int n, int m) {
+    // Napravimo dp matricu iste veličine kao c
+    vector<vector<int>> dp(n, vector<int>(m, 0));
+
+    // Početna pozicija — cena polja (0,0)
+    dp[0][0] = c[0][0];
+
+    // Popunjavamo prvi red — možemo samo ići desno
+    for (int j = 1; j < m; j++) {
+        dp[0][j] = dp[0][j - 1] + c[0][j];
+    }
+
+    // Popunjavamo prvu kolonu — možemo samo ići dole
+    for (int i = 1; i < n; i++) {
+        dp[i][0] = dp[i - 1][0] + c[i][0];
+    }
+
+    // Popunjavamo ostatak matrice — biramo manju cenu od gornjeg ili levog polja
+    for (int i = 1; i < n; i++) {
+        for (int j = 1; j < m; j++) {
+            int minOdGoreIliLevo = dp[i - 1][j] < dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1];
+            dp[i][j] = c[i][j] + minOdGoreIliLevo;
+        }
+    }
+
+    // Rezultat se nalazi u donjem desnom uglu matrice
+    return dp[n - 1][m - 1];
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    // Učitavamo matricu cena
+    vector<vector<int>> c(n, vector<int>(m));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> c[i][j];
+        }
+    }
+
+    // Pozivamo funkciju i ispisujemo rezultat
+    cout << minimalnaCenaPutanje(c, n, m) << endl;
+
+    return 0;
+}
+
+
+Speleolozi se nalaze u ulaznoj dvorani pecine,
+ na visini tla, cija je nadmorska visina poznata.
+ Pecina ima ukupno n dvorana obelezenih brojevima od 0 do n-1
+(ulazna dvorana je obelezena brojem 0) i do svake od njih se moze stici koriscenjem
+n - 1 hodnika koji ih povezuju. Ako se za svaki hodnik zna koje dve
+dorane povezuje i kolika je visinska razlike izmedju njij
+napisati program koji odredjuje najnizu nadmorsku visinu
+na koju speleolozi u pecini mogu spustiti.
+Ulaz: Prirodan broj n (broj pecina), prirodan broj m (nadmorska visina
+ulazne dvorane), a u narednih n-1 linija nalaze se po tri broja
+razdvojena razmacima, koja opisuju hodnik: redni broj
+polazne dvorane, redni broj dolazne dvorane i visinsku
+razliku izmedju polazne i dolazne dvorane.
+Izlaz: Trazena najveca dubina.
+Primer:
+Ulaz
+278
+7
+0 1 -20
+0 2 -10
+1 3 -5
+1 4 10
+2 5 -33
+2 5 7
+Izlaz:235
+Potrbena vremenska slozenost: O(n)
+
+
+#include <iostream>
+using namespace std;
+/*
+    IDEJA REŠENJA:
+    ------------------------------------------
+    Pećinu predstavljamo kao graf gde su čvorovi dvorane,
+    a veze između njih (hodnici) sadrže visinsku razliku.
+
+    Krenemo iz ulazne dvorane (0) i pomoću DFS-a (rekurzije)
+    obilazimo sve ostale. Pratimo trenutnu visinu.
+    Ako naiđemo na dublju visinu (manju nadmorsku visinu),
+    ažuriramo minimalnu pronađenu visinu.
+
+    Vremenska složenost je O(n), jer svaku dvoranu i svaki
+    hodnik obilazimo tačno jednom.
+*/
+
+// Struktura koja opisuje hodnik između dvorana
+// Svaki hodnik ima indeks dvorane ka kojoj vodi i visinsku razliku
+struct Hodnik {
+    int cilj;               // indeks dvorane do koje vodi hodnik
+    int visinskaRazlika;    // promena visine (može biti negativna)
+};
+
+// Struktura koja opisuje jednu dvoranu
+// Svaka dvorana može imati više hodnika koji vode u druge dvorane
+struct Dvorana {
+    Hodnik hodnici[100];    // maksimalno 100 hodnika po dvorani
+    int brojHodnika;        // koliko hodnika ta dvorana ima
+};
+
+// Rekurzivna funkcija koja obilazi sve dvorane i traži najnižu visinu
+void nadjiNajmanjuVisinu(Dvorana pecina[], bool posecen[], int trenutna, int trenutnaVisina, int& najmanjaVisina) {
+    // Označavamo da smo posetili ovu dvoranu da ne bismo ušli u beskonačnu petlju
+    posecen[trenutna] = true;
+
+    // Ako je trenutna visina manja od dosadašnje najmanje, ažuriramo rezultat
+    if (trenutnaVisina < najmanjaVisina)
+        najmanjaVisina = trenutnaVisina;
+
+    // Obilazimo sve hodnike iz trenutne dvorane
+    for (int i = 0; i < pecina[trenutna].brojHodnika; i++)
+        // Uzimamo sledeću dvoranu i visinsku razliku za hodnik
+    {
+        int sledeca = pecina[trenutna].hodnici[i].cilj;
+        int promena = pecina[trenutna].hodnici[i].visinskaRazlika;
+
+        // Ako sledeća dvorana još nije posećena, idemo dalje rekurzivno
+        if (!posecen[sledeca])
+            nadjiNajmanjuVisinu(pecina, posecen, sledeca, trenutnaVisina + promena, najmanjaVisina);
+    }
+}
+
+int main() {
+    int n, m; // prvo ide 7 pa 278
+    cout << "Unesite broj dvorana i nadmorsku visinu ulazne dvorane: ";
+    cin >> n >> m;
+
+    // Dinamičko alociranje memorije za dvorane i niz posećenih
+    Dvorana* pecina = new Dvorana[n];
+    bool* posecen = new bool[n];
+
+    // Inicijalno sve dvorane imaju 0 hodnika i nisu posećene
+    for (int i = 0; i < n; i++) {
+        pecina[i].brojHodnika = 0;
+        posecen[i] = false;
+    }
+
+    cout << "Unesite hodnike (a b visinska_razlika):\n";
+    for (int i = 0; i < n - 1; i++) {
+        int a, b, diff;
+        cin >> a >> b >> diff;
+
+        // Kreiramo hodnik od dvorane a do b
+        Hodnik prvi;
+        prvi.cilj = b;
+        prvi.visinskaRazlika = diff;
+
+        // Dodajemo hodnik u listu hodnika za dvoranu a
+        pecina[a].hodnici[pecina[a].brojHodnika] = prvi;
+        pecina[a].brojHodnika++;
+
+        // Kreiramo suprotan hodnik (jer se može ići u oba smera)
+        Hodnik drugi;
+        drugi.cilj = a;
+        drugi.visinskaRazlika = -diff;
+
+        // Dodajemo suprotan hodnik u listu hodnika za dvoranu b
+        pecina[b].hodnici[pecina[b].brojHodnika] = drugi;
+        pecina[b].brojHodnika++;
+    }
+
+    // Početna visina je visina ulazne dvorane
+    int najmanjaVisina = m;
+
+    // Pokrećemo rekurzivnu pretragu iz ulazne dvorane (pretpostavljamo da je to dvorana 0)
+    nadjiNajmanjuVisinu(pecina, posecen, 0, m, najmanjaVisina);
+
+    cout << "Najmanja visina na koju se speleolozi mogu spustiti: " << najmanjaVisina << endl;
+
+    // Oslobađamo memoriju
+    delete[] pecina;
+    delete[] posecen;
+
+    return 0;
+}
+
+
+Ispred kase se sakupilo n osoba, i za svaku i-tu osobu poznato je vreme t[i]
+koje je potrebno da bude usluzena. Osoba je razocarana ako je vreme koje
+provede cekajuci u redu (to vreme je jednako ukupnom vremenu potrebnom za
+usluzivanje svih ljudi ispred te osobe u redu) vece od vremena potrebno
+za njeno usluzivanje. Rasporediti osobe u takav poredak tako da broj 
+razocaranih osoba bude minimalan. ISpisati taj broj (minimalan broj razocaranih osoba)
+a ne i sam poredak.
+Ulaz: Prirodan broj n (broj osoba) kao i elementi niza t (vreme usluzivanja svake osobe).
+Izlaz: Minimalan broj razocaranih osoba
+Primer:
+Ulaz:
+n=6
+t = [15,2,1,5,3,9]
+Izlaz: 1
+Tip: Osobe mozemo poredjati u sledecem poretku: [1,2,3,9,15,5], cime je samo
+poslednja osoba razocarana
+Potrebna brzina izvrsavanja: O(n logn)
+
+
+#include <iostream>
+using namespace std;
+
+// --- Ideja rešenja ---
+// Sortiraćemo osobe po vremenu usluge da smanjimo čekanja.
+// Zatim ćemo redom ići kroz osobe i računati koliko bi čekale.
+// Ako neka osoba čeka duže nego što joj treba da bude uslužena,
+// preskačemo je — znači, ona je razočarana.
+// Na kraju broj takvih preskočenih osoba je minimalan.
+// Ukupna složenost je O(n log n) zbog sortiranja.
+
+// ----------- MERGE SORT (ručna implementacija, bez STL-a) -----------
+void merge(int arr[], int left, int mid, int right) {
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
+
+    int* L = new int[n1];
+    int* R = new int[n2];
+
+    for (int i = 0; i < n1; i++) L[i] = arr[left + i];
+    for (int i = 0; i < n2; i++) R[i] = arr[mid + 1 + i];
+
+    int i = 0, j = 0, k = left;
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) arr[k++] = L[i++];
+        else arr[k++] = R[j++];
+    }
+
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+
+    delete[] L;
+    delete[] R;
+}
+
+void mergeSort(int arr[], int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+
+int minRazocharani(int t[], int n) {
+    mergeSort(t, 0, n - 1); // sortiramo O(n log n)
+
+    int cekanje = 0;
+    int razocarani = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (cekanje > t[i]) {
+            razocarani++; // ova osoba čeka predugo
+        }
+        else {
+            cekanje += t[i]; // dodajemo je u red
+        }
+    }
+    return razocarani;
+}
+
+// ----------- MAIN -----------
+int main() {
+    int n;
+    cout << "Unesi broj osoba: ";
+    cin >> n;
+
+    int t[1000];
+    cout << "Unesi vremena usluge za svaku osobu: ";
+    for (int i = 0; i < n; i++) {
+        cin >> t[i];
+    }
+
+    int rezultat = minRazocharani(t, n);
+    cout << "Minimalan broj razocaranih osoba je: " << rezultat << endl;
+
+    return 0;
+}
+
+
+Dat je neusmereni graf koji se sastoji od n cvorova i m grana. Odrediti
+da li dati graf sadrzi ciklus ili ne (odnosno, da li postoji putanja u grafu u 
+kojoj se pocetni i krajnji cvor na toj putanji poklapaju).
+Ulaz: Prirodni brojeni n i m (broj cvorova i broj grana) a u narednih
+m linija po dva broja a i b koji oznacav granu izmedju cvorova a i b.
+Izlaz: String "DA" ili "NE" u zavisnosti od toga da li u grafu postoji ciklus ili ne
+Primer:
+Ulaz: n=5 m=5
+0 1
+1 2
+2 3
+3 4
+4 1
+Izlaz: Da
+Potrebna vremenska slozenost: O(n+m)
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+/*
+Ključna opservacija:
+- U DFS obilasku neusmerenog grafa, ako naidemo na čvor koji je već posećen
+  a koji NIJE roditelj trenutnog čvora, to znači da postoji ciklus.
+- Roditelj se prosleđuje kroz rekurziju da bismo znali ko nam je neposredni prethodnik.
+- Za svaki čvor pametimo da li je posećen
+- Prilikom obilaska suseda:
+  - Ako sused NIJE posećen: rekurzivno ga obiđemo
+  - Ako sused JE posećen i NIJE roditelj: nađen ciklus
+*/
+
+// Funkcija za DFS koja proverava da li postoji ciklus u grafu
+bool imaCiklusDFS(int cvor, int roditelj, vector<vector<int>>& graf, vector<bool>& posecen) {
+    posecen[cvor] = true;  // Označavamo trenutni čvor kao posećen
+
+    // Prolazimo kroz sve susede trenutnog čvora
+    for (int i = 0; i < graf[cvor].size(); i++) {
+        int sused = graf[cvor][i];
+
+        // Ako sused nije posećen, rekurzivno ga obilazimo
+        if (!posecen[sused]) {
+            if (imaCiklusDFS(sused, cvor, graf, posecen))
+                return true;  // Pronađen ciklus u podgrafu
+        }
+        // Ako je sused već posećen, ali nije roditelj — nađen ciklus!
+        else if (sused != roditelj) {
+            return true;
+        }
+    }
+    return false;  // Nema ciklusa u ovom podgrafu
+}
+
+int main() {
+    int n, m;
+    cout << "Unesite broj cvorova i grana: ";
+    cin >> n >> m;
+
+    vector<vector<int>> graf(n);   // lista susedstva
+    vector<bool> posecen(n, false); // oznaka da li je cvor posecen
+
+    cout << "Unesite grane (a b):" << endl;
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        cin >> a >> b;
+        graf[a].push_back(b);
+        graf[b].push_back(a); // neusmeren graf
+    }
+
+    bool ciklus = false;
+
+    // Ako graf nije povezan, proveravamo svaku komponentu posebno
+    for (int i = 0; i < n; i++) {
+        if (!posecen[i]) {
+            if (imaCiklusDFS(i, -1, graf, posecen)) {
+                ciklus = true;
+                break;  // Nije potrebno dalje tražiti
+            }
+        }
+    }
+
+    if (ciklus)
+        cout << "DA";
+    else
+        cout << "NE";
+
+    cout << endl;
+    return 0;
+}
+
+
+
+
+Dato je n kutija pri cemu je za svaku kutiju poznata njena duzina, sirina i visina.
+Jedna kutija moze stati na drugu ako su duzina i sirina prve kutije
+manje od duzine i sirine druge kutije, respektivno (kutije se ne mogu rotirati). Odrediti
+visinu najviseg niza kutija koji se moze dobiti redjanjem jedna kutije na drugu, pod
+uslovom da se ne menja redosled kutija.
+Ulaz: Prirodan broj n (broj kutija), kao i tri niza l,w i h, svaki duzine n, pri
+cemu vrednosti l[i] i h[i] predstavkhahy duzinu, sirinu i visinu i-te kutije.
+Izlaz: Ukupna visina najviseg niza kutija dobijen redjanjem jedna kutije na drugu
+Primer:
+Ulaz
+n=4
+l= [7,3,6,3]
+w= [6,2,5,2]
+h= [4,3,4,1]
+Izlaz: 9
+Potrebna vremenska slozenost: O(n^2)
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+/*
+Ključna ograničenja:
+- Kutije se ne mogu rotirati (fiksne dimenzije)
+- Donja kutija mora biti veća u dužini I širini od gornje
+- Redosled kutija u originalnom nizu se NE MENJA (biramo podniz)
+
+DP strategija:
+- dp[i] = maksimalna visina stoga koji se ZAVRŠAVA kutijom i
+- Za svaku kutiju i, proveravamo sve prethodne kutije j:
+  Ako je kutija j veća od i (l[j] > l[i] i w[j] > w[i]),
+  onda možemo postaviti i na j: dp[i] = max(dp[i], dp[j] + h[i])
+- Inicijalno: svaka kutija može biti sama -> dp[i] = h[i]
+
+*/
+
+int maksimalnaVisinaStoga(const vector<int>& l, const vector<int>& w, const vector<int>& h) {
+    int n = (int)l.size();
+    vector<int> dp(n);  // DP niz koji čuva maksimalne visine
+
+    // Inicijalizacija: svaka kutija može stajati sama
+    for (int i = 0; i < n; ++i)
+        dp[i] = h[i];
+
+    int globalMax = 0;  // Globalni maksimum za ceo stog
+
+    // Prolazimo kroz sve kutije
+    for (int i = 0; i < n; ++i) {
+        // Za svaku kutiju i, proveravamo sve prethodne kutije j
+        for (int j = 0; j < i; ++j) {
+            // Provera da li kutija j može biti ispod kutije i
+            // Donja kutija (j) mora biti VEĆA u obe dimenzije
+            if (l[j] > l[i] && w[j] > w[i]) {
+                // Ažuriramo dp[i] ako je bolje postaviti i na j
+                if (dp[j] + h[i] > dp[i]) {
+                    dp[i] = dp[j] + h[i];
+                }
+            }
+        }
+        // Ažuriramo globalni maksimum
+        if (dp[i] > globalMax)
+            globalMax = dp[i];
+    }
+
+    return globalMax;
+}
+
+int main() {
+    int n;
+    cout << "Unesite broj kutija: ";
+    if (!(cin >> n)) return 0;
+
+    vector<int> l(n), w(n), h(n);
+    cout << "Unesite duzine (l): ";
+    for (int i = 0; i < n; ++i) cin >> l[i];
+    cout << "Unesite sirine (w): ";
+    for (int i = 0; i < n; ++i) cin >> w[i];
+    cout << "Unesite visine (h): ";
+    for (int i = 0; i < n; ++i) cin >> h[i];
+
+    int rezultat = maksimalnaVisinaStoga(l, w, h);
+    cout << "Najveca visina niza kutija: " << rezultat << endl;
+
+    return 0;
+}
+
+
+
+
+Deca jednog vrtica dobila su zadatak da n kartica, obelezenih brojevima od 1 do n, oboje
+do pocetka priredbe. Za organizaciju priredbe zaduzeno je m vaspitacica, a svaka od njih je tacno jedanput rekla deci
+koji parovi kartica moraju biti obojeni istom bojom.
+Napisati program koji racuna najveci broj potrebnih za bojenje
+svih kartica po instrukcijama vaspitacica.
+Ulaz: U prvom redu standardnog ulaza nalaze se prirodni brojevi n i m.
+U narednih m redova data su po dva prirodna broja -redni brojevi karata koji moraju 
+biti obojeni istom bojom (moguce je i ponavljanje parova)
+Izlaz: Na standardni izlaz napisati jedan ceo broj, najveci broj boja potrebnih za bojenje svih kartica.
+Primer:
+Ulaz: n=12 m=5
+2 1
+2 3
+1 2
+1 3
+1 4
+Izlaz: 9
+Tip:Karte oznacene rednim brojevima 1,2,3 i 4 boje se istom bojom.
+Ostale karte(numerisane brojevima od 5 do 12,dakle njih ukupno 8)
+boje se svaka razlicitom bojom.
+Potrebna vremenska slozenost: O(n+m)
+
+#include <iostream>
+using namespace std;
+
+const int MAX = 1000;
+
+/*
+IDEJA REŠENJA:
+Ključna opservacija:
+- Ovo je problem bojenja grafa gde čvorovi predstavljaju kartice, a grane predstavljaju zabrane
+- Minimalan broj boja = broj povezanih komponenti u grafu
+- Razlog: kartice iz RAZLIČITIH komponenti nisu međusobno povezane,
+  pa mogu sve biti u istoj grupi (koristimo istu boju za različite komponente)
+- Unutar jedne komponente, možda će trebati više boja, ali to je zaseban problem
+*/
+
+// Lista susedstva — za svaku karticu čuvamo njene susede (zabranjene parove)
+int adj[MAX][MAX];  // adj[u] sadrži susede čvora u
+int deg[MAX];       // deg[u] = broj suseda za čvor u (stepen čvora)
+bool posecen[MAX];  // posecen[u] = da li smo već obišli čvor u
+
+int n, m;  // broj kartica (čvorova) i broj zabrana (grana)
+
+// DFS obilazak – pronalazi sve kartice u istoj povezanoj komponenti
+void dfs(int u) {
+    posecen[u] = true;  // Označavamo trenutni čvor kao posećen
+
+    // Prolazimo kroz sve susede trenutnog čvora
+    for (int i = 0; i < deg[u]; i++) {
+        int v = adj[u][i];  // Uzimamo sledećeg suseda
+        if (!posecen[v])    // Ako sused nije posećen
+            dfs(v);         // Rekurzivno obilazimo celu njegovu komponentu
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    // Učitavanje svih zabranjenih parova (veza između kartica)
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        cin >> a >> b;
+        a--; // Konvertujemo iz 1-based u 0-based indeksiranje
+        b--;
+
+        // Dodajemo u listu susedstva (neusmeren graf)
+        adj[a][deg[a]++] = b;  // b je sused od a
+        adj[b][deg[b]++] = a;  // a je sused od b
+    }
+
+    int brojKomponenti = 0;
+
+    // Prolazimo kroz sve kartice i brojimo povezane komponente
+    for (int i = 0; i < n; i++) {
+        if (!posecen[i]) {
+            // Našli smo novu komponentu - obilazimo je DFS-om
+            dfs(i);
+            brojKomponenti++;  // Svaka komponenta = jedna grupa/boja
+        }
+    }
+
+    // Minimalan broj grupa = broj povezanih komponenti
+    // Objašnjenje: Kartice iz različitih komponenti nisu povezane,
+    // pa možemo sve kartice iz različitih komponenti staviti u istu grupu
+    cout << brojKomponenti << endl;
+
+    return 0;
+}
+
+U toku gledanja nekog Youtube video zapisa potrebno je u n momenata pustiti
+po jedan oglas(bez mogucnosti preskakanja oglasa). Pri tome, svaki oglas
+reklamira proizvod tacno jedne od tri kompanija, a pravilo je da 
+nikoja dva susdne oglasa ne smeju biti od iste kompanije. Za svaki momenat i
+kada se prikazuje oglas, poznata su tri broja a[i], b[i] i c[i]
+koji predstavljaju trajanje oglasa u i-tom momentu od odgovarajuce
+kompanije. Odrediti najmanje moguce trajanje svih n oglasa.
+Ulaz: Prirodan broj n, a u naredna tri reda po n elemenata nizova a,b i c, respektivno
+Izlaz: Najmanje moguce vreme da se pusti svih n oglasa.
+Primer:
+Ulaz: n=5
+a= [3 4 1 5 8]
+b= [3 5 7 2 9]
+c= [7 1 2 3 2]
+Izlaz: 9
+Tip: trazeni redosled reklama je bcabc
+Potrebna vremenska slozenost: O(n)
+
+
+#include <iostream>
+using namespace std;
+
+/*
+Dinamičko programiranje strategija:
+- Pratimo tri stanja za svaki oglas:
+  dpA[i] = minimalno trajanje ako i-ti oglas završava kompanijom A
+  dpB[i] = minimalno trajanje ako i-ti oglas završava kompanijom B
+  dpC[i] = minimalno trajanje ako i-ti oglas završava kompanijom C
+
+Rekurentne formule:
+- dpA[i] = a[i] + min(dpB[i-1], dpC[i-1])  (ne sme dva A uzastopno)
+- dpB[i] = b[i] + min(dpA[i-1], dpC[i-1])  (ne sme dva B uzastopno)
+- dpC[i] = c[i] + min(dpA[i-1], dpB[i-1])  (ne sme dva C uzastopno)
+*/
+
+// Funkcija koja računa minimalno ukupno trajanje oglasa
+int minimalnoTrajanje(int n, int a[], int b[], int c[]) {
+    // Inicijalizacija za prvi oglas
+    int dpA = a[0];  // minimalno trajanje ako prvi oglas završava sa A
+    int dpB = b[0];  // minimalno trajanje ako prvi oglas završava sa B
+    int dpC = c[0];  // minimalno trajanje ako prvi oglas završava sa C
+
+    // Privremene promenljive za novi red
+    int newA, newB, newC;
+
+    // Prolaz kroz sve preostale oglase (od drugog do poslednjeg)
+    for (int i = 1; i < n; i++) {
+
+        // Za kompaniju A: može da sledi samo iza B ili C
+        // Biramo minimum od prethodnih B i C vrednosti
+        if (dpB < dpC)
+            newA = a[i] + dpB;
+        else
+            newA = a[i] + dpC;
+
+        // Za kompaniju B: može da sledi samo iza A ili C
+        // Biramo minimum od prethodnih A i C vrednosti
+        if (dpA < dpC)
+            newB = b[i] + dpA;
+        else
+            newB = b[i] + dpC;
+
+        // Za kompaniju C: može da sledi samo iza A ili B
+        // Biramo minimum od prethodnih A i B vrednosti
+        if (dpA < dpB)
+            newC = c[i] + dpA;
+        else
+            newC = c[i] + dpB;
+
+        // Ažuriramo trenutne DP vrednosti za sledeću iteraciju
+        dpA = newA;
+        dpB = newB;
+        dpC = newC;
+    }
+
+    // Na kraju biramo najmanje vreme između A, B i C
+    int minTime = dpA;
+    if (dpB < minTime)
+        minTime = dpB;
+    if (dpC < minTime)
+        minTime = dpC;
+
+    return minTime;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    int a[1000], b[1000], c[1000]; // nizovi trajanja za svaku kompaniju
+
+    // Unos trajanja oglasa za kompaniju A
+    for (int i = 0; i < n; i++)
+        cin >> a[i];
+    // Unos trajanja oglasa za kompaniju B    
+    for (int i = 0; i < n; i++)
+        cin >> b[i];
+    // Unos trajanja oglasa za kompaniju C
+    for (int i = 0; i < n; i++)
+        cin >> c[i];
+
+    int rezultat = minimalnoTrajanje(n, a, b, c);
+    cout << rezultat << endl;
+
+    return 0;
+}
